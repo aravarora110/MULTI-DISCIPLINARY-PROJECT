@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FaultSight — Quantum-Inspired Fault Diagnosis</title>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #070910;
+  --surface: #0e1118;
+  --surface2: #141820;
+  --border: #1c2133;
+  --border2: #252d40;
+  --accent: #00e5ff;
+  --accent2: #ff6b35;
+  --accent3: #7c3aed;
+  --quantum: #a78bfa;
+  --green: #22c55e;
+  --yellow: #f59e0b;
+  --red: #ef4444;
+  --text: #e2e8f0;
+  --text2: #94a3b8;
+  --muted: #4a5568;
+  --mono: 'Space Mono', monospace;
+  --sans: 'Inter', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image:
+    linear-gradient(rgba(0,229,255,.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,.02) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+#root { position: relative; z-index: 1; }
+
+/* ── header ── */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 40px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(7,9,16,.95);
+  backdrop-filter: blur(16px);
+  position: sticky; top: 0; z-index: 200;
+}
+.logo { display: flex; align-items: center; gap: 12px; }
+.logo-text {
+  font-family: var(--mono); font-size: 1rem; font-weight: 700;
+  letter-spacing: .12em; color: var(--accent);
+}
+.logo-text span { color: var(--text); }
+.logo-sub {
+  font-family: var(--mono); font-size: .52rem; letter-spacing: .15em;
+  color: var(--muted); text-transform: uppercase; display: block; margin-top: 2px;
+}
+.badge {
+  font-family: var(--mono); font-size: .6rem; letter-spacing: .12em;
+  padding: 5px 12px;
+  border: 1px solid rgba(167,139,250,.35);
+  color: var(--quantum); border-radius: 2px; text-transform: uppercase;
+}
+.header-right { display: flex; align-items: center; gap: 12px; }
+
+/* ── nav tabs ── */
+.nav-tabs {
+  display: flex; border-bottom: 1px solid var(--border);
+  background: var(--surface); position: sticky; top: 61px; z-index: 100;
+  overflow-x: auto;
+}
+.nav-tab {
+  font-family: var(--mono); font-size: .65rem; letter-spacing: .1em;
+  padding: 14px 22px; cursor: pointer; white-space: nowrap;
+  border-bottom: 2px solid transparent; color: var(--muted);
+  transition: all .15s; text-transform: uppercase;
+  border: none; background: none; border-bottom: 2px solid transparent;
+}
+.nav-tab:hover { color: var(--text); background: rgba(255,255,255,.02); }
+.nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.nav-tab.quantum-tab { }
+.nav-tab.quantum-tab.active { color: var(--quantum); border-bottom-color: var(--quantum); }
+
+/* ── main layout ── */
+.main { padding: 40px; max-width: 1440px; margin: 0 auto; }
+
+/* ── buttons ── */
+.btn {
+  font-family: var(--mono); font-size: .68rem; letter-spacing: .08em;
+  padding: 9px 18px; cursor: pointer; border-radius: 3px; border: none;
+  transition: all .15s;
+}
+.btn-primary { background: var(--accent); color: #000; }
+.btn-primary:hover { background: #33ecff; transform: translateY(-1px); }
+.btn-ghost {
+  background: transparent; color: var(--text2);
+  border: 1px solid var(--border2);
+}
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+.btn-sm { padding: 6px 12px; font-size: .6rem; }
+
+/* ── section label ── */
+.section-title {
+  font-family: var(--mono); font-size: .62rem; letter-spacing: .22em;
+  color: var(--muted); text-transform: uppercase;
+  margin-bottom: 20px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── upload ── */
+.upload-zone {
+  border: 1px dashed var(--border2); padding: 56px;
+  text-align: center; border-radius: 6px; cursor: pointer;
+  transition: all .2s;
+}
+.upload-zone:hover { border-color: var(--accent); background: rgba(0,229,255,.02); }
+.upload-icon { font-size: 2.5rem; margin-bottom: 14px; }
+.upload-label { font-family: var(--mono); font-size: .82rem; color: var(--text2); }
+.upload-sub { font-size: .72rem; color: var(--muted); margin-top: 8px; }
+
+/* ── stat cards ── */
+.stats-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 36px;
+}
+@media(max-width:1000px) { .stats-grid { grid-template-columns: repeat(2,1fr); } }
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  padding: 22px 26px; border-radius: 6px; position: relative; overflow: hidden;
+}
+.stat-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--accent-color, var(--accent));
+}
+.stat-label {
+  font-family: var(--mono); font-size: .58rem; letter-spacing: .18em;
+  color: var(--muted); text-transform: uppercase;
+}
+.stat-value {
+  font-family: var(--mono); font-size: 1.9rem; font-weight: 700; margin-top: 8px;
+}
+.stat-sub { font-size: .7rem; color: var(--muted); margin-top: 6px; }
+
+/* ── leaderboard ── */
+.lb-table { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-bottom: 40px; }
+.lb-header, .lb-row {
+  display: grid;
+  grid-template-columns: 44px 120px 1fr 120px 1fr 90px 88px 72px 80px;
+  align-items: center;
+}
+.lb-header {
+  font-family: var(--mono); font-size: .57rem; letter-spacing: .18em;
+  color: var(--muted); text-transform: uppercase;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,.015);
+}
+.lb-row {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background .12s; font-size: .8rem;
+}
+.lb-row:last-child { border-bottom: none; }
+.lb-row:hover { background: rgba(0,229,255,.04); }
+.lb-row.active { background: rgba(0,229,255,.07); border-left: 2px solid var(--accent); }
+.lb-row.best { }
+.rank { font-family: var(--mono); color: var(--muted); font-size: .72rem; }
+.pipeline-name { font-family: var(--mono); font-size: .72rem; font-weight: 700; }
+.tag {
+  display: inline-block; font-size: .58rem; font-family: var(--mono);
+  padding: 3px 7px; border-radius: 2px; letter-spacing: .05em;
+}
+.tag-fs  { background: rgba(0,229,255,.08);  color: var(--accent); border: 1px solid rgba(0,229,255,.18); }
+.tag-im  { background: rgba(255,107,53,.08); color: var(--accent2); border: 1px solid rgba(255,107,53,.18); }
+.tag-clf { background: rgba(124,58,237,.08); color: var(--accent3); border: 1px solid rgba(124,58,237,.18); }
+.tag-q   { background: rgba(167,139,250,.08); color: var(--quantum); border: 1px solid rgba(167,139,250,.18); }
+.bar-cell { display: flex; align-items: center; gap: 8px; }
+.bar-bg { flex: 1; height: 4px; background: rgba(255,255,255,.06); border-radius: 2px; overflow: hidden; max-width: 60px; }
+.bar-fill { height: 100%; border-radius: 2px; transition: width .6s ease; }
+.acc-val, .f1-val { font-family: var(--mono); font-size: .7rem; }
+.best-badge {
+  font-family: var(--mono); font-size: .52rem; letter-spacing: .1em;
+  padding: 3px 7px; background: rgba(34,197,94,.12);
+  color: var(--green); border: 1px solid rgba(34,197,94,.25); border-radius: 2px;
+}
+.runtime { font-family: var(--mono); font-size: .62rem; color: var(--muted); }
+.view-btn {
+  font-family: var(--mono); font-size: .58rem; letter-spacing: .06em;
+  padding: 5px 10px; background: transparent; cursor: pointer;
+  border: 1px solid var(--border2); border-radius: 2px; color: var(--text2);
+  transition: all .12s;
+}
+.view-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── panels ── */
+.panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 26px;
+}
+.panel-title {
+  font-family: var(--mono); font-size: .6rem; letter-spacing: .2em;
+  color: var(--muted); text-transform: uppercase; margin-bottom: 22px;
+}
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 28px; }
+@media(max-width:900px) { .two-col { grid-template-columns: 1fr; } }
+.three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-bottom: 28px; }
+@media(max-width:1100px) { .three-col { grid-template-columns: 1fr; } }
+
+/* ── confusion matrix ── */
+.cm-wrap { display: inline-block; }
+.cm-row { display: flex; gap: 4px; align-items: center; margin-bottom: 4px; }
+.cm-cell {
+  width: 80px; height: 58px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: var(--mono); border-radius: 4px; transition: background .3s;
+}
+.cm-cell-val { font-size: 1.05rem; font-weight: 700; }
+.cm-cell-pct { font-size: .52rem; color: rgba(255,255,255,.5); margin-top: 2px; }
+.cm-row-label { font-family: var(--mono); font-size: .58rem; color: var(--muted); width: 66px; text-align: right; padding-right: 10px; }
+.cm-col-labels { display: flex; margin-left: 76px; margin-bottom: 6px; }
+.cm-col-label { width: 84px; font-family: var(--mono); font-size: .58rem; color: var(--muted); text-align: center; }
+.cm-axis { font-family: var(--mono); font-size: .58rem; color: var(--muted); text-align: center; margin-top: 8px; margin-left: 76px; }
+
+/* ── metrics ── */
+.metric-row { margin-bottom: 12px; }
+.metric-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
+.metric-name { font-size: .72rem; color: var(--text2); }
+.metric-val { font-family: var(--mono); font-size: .72rem; }
+.metric-bar-bg { height: 5px; background: rgba(255,255,255,.05); border-radius: 3px; overflow: hidden; }
+.metric-bar-fill { height: 100%; border-radius: 3px; transition: width .8s ease; }
+.class-section { margin-bottom: 22px; }
+.class-label {
+  font-family: var(--mono); font-size: .62rem; letter-spacing: .1em;
+  margin-bottom: 10px; padding: 4px 10px; display: inline-block;
+  border-radius: 2px;
+}
+
+/* ── recommendation ── */
+.recommendation {
+  background: linear-gradient(135deg, rgba(34,197,94,.06), rgba(34,197,94,.02));
+  border: 1px solid rgba(34,197,94,.22);
+  border-radius: 6px; padding: 30px; margin-bottom: 36px;
+}
+.rec-crown { font-size: 1.6rem; margin-bottom: 10px; }
+.rec-title {
+  font-family: var(--mono); font-size: .62rem; letter-spacing: .2em;
+  color: var(--green); text-transform: uppercase; margin-bottom: 14px;
+}
+.rec-name {
+  font-family: var(--mono); font-size: 1.4rem; font-weight: 700;
+  color: var(--green); margin-bottom: 10px;
+}
+.rec-desc { font-size: .84rem; color: var(--text2); line-height: 1.8; margin-bottom: 16px; }
+.rec-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ── quantum panel ── */
+.quantum-panel {
+  background: linear-gradient(135deg, rgba(124,58,237,.06), rgba(167,139,250,.03));
+  border: 1px solid rgba(167,139,250,.22); border-radius: 6px; padding: 28px;
+}
+.quantum-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 22px;
+}
+.quantum-icon { font-size: 1.4rem; }
+.quantum-title-text { }
+.quantum-title-text h3 {
+  font-family: var(--mono); font-size: .72rem; letter-spacing: .18em;
+  color: var(--quantum); text-transform: uppercase; margin-bottom: 3px;
+}
+.quantum-title-text p { font-size: .72rem; color: var(--muted); }
+.q-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; margin-bottom: 20px; }
+.q-stat-label { font-family: var(--mono); font-size: .58rem; color: var(--muted); letter-spacing: .12em; margin-bottom: 6px; }
+.q-stat-value { font-family: var(--mono); font-size: 1.5rem; font-weight: 700; color: var(--quantum); }
+.q-note {
+  font-size: .72rem; color: var(--muted); line-height: 1.7;
+  border-top: 1px solid rgba(167,139,250,.12); padding-top: 16px;
+}
+
+/* ── pipeline detail page ── */
+.pipeline-detail-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 36px; flex-wrap: wrap; gap: 16px;
+}
+.pipeline-detail-name {
+  font-family: var(--mono); font-size: 1.6rem; font-weight: 700; margin-bottom: 6px;
+}
+.pipeline-detail-sub { font-size: .82rem; color: var(--muted); }
+.pipeline-detail-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.back-btn {
+  font-family: var(--mono); font-size: .62rem; letter-spacing: .1em;
+  padding: 8px 16px; background: transparent;
+  border: 1px solid var(--border2); color: var(--text2); border-radius: 3px; cursor: pointer;
+  transition: all .12s; white-space: nowrap; display: flex; align-items: center; gap: 6px;
+}
+.back-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── description cards ── */
+.desc-section { margin-bottom: 28px; }
+.desc-card {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 20px 24px; margin-bottom: 12px;
+}
+.desc-card-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+}
+.desc-card-icon { font-size: 1.2rem; }
+.desc-card-title { font-family: var(--mono); font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; }
+.desc-card-purpose {
+  font-size: .78rem; color: var(--muted); margin-bottom: 10px;
+  font-style: italic; border-left: 2px solid var(--border2); padding-left: 12px;
+}
+.desc-card-body { font-size: .8rem; color: var(--text2); line-height: 1.8; }
+.desc-card-how { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.desc-card-how-title { font-family: var(--mono); font-size: .58rem; letter-spacing: .14em; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+.desc-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 28px; }
+@media(max-width:900px) { .desc-grid { grid-template-columns: 1fr; } }
+
+/* ── results section ── */
+.result-kpi-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
+.result-kpi {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 18px 22px; flex: 1; min-width: 140px;
+  position: relative; overflow: hidden;
+}
+.result-kpi::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--kpi-color, var(--accent));
+}
+.result-kpi-label { font-family: var(--mono); font-size: .56rem; letter-spacing: .18em; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+.result-kpi-val { font-family: var(--mono); font-size: 1.6rem; font-weight: 700; }
+
+/* ── features ── */
+.feature-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.feature-chip {
+  font-family: var(--mono); font-size: .62rem; letter-spacing: .05em;
+  padding: 4px 9px; background: rgba(255,255,255,.04);
+  border: 1px solid var(--border); border-radius: 2px; color: var(--muted);
+  transition: all .12s;
+}
+.feature-chip.top { color: var(--accent); border-color: rgba(0,229,255,.25); background: rgba(0,229,255,.04); }
+
+/* ── chart ── */
+.acc-chart { display: flex; align-items: flex-end; gap: 10px; height: 150px; padding-top: 20px; }
+.acc-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; justify-content: flex-end; cursor: pointer; }
+.acc-bar { width: 100%; border-radius: 3px 3px 0 0; transition: all .5s ease; min-height: 2px; position: relative; }
+.acc-bar-val { font-family: var(--mono); font-size: .58rem; color: var(--accent); }
+.acc-bar-lbl { font-family: var(--mono); font-size: .52rem; color: var(--muted); text-align: center; }
+.chart-baseline { height: 1px; background: var(--border); margin-top: 4px; }
+
+/* ── loader ── */
+.loader { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 100px 40px; gap: 20px; }
+.spinner { width: 36px; height: 36px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader-text { font-family: var(--mono); font-size: .72rem; color: var(--muted); letter-spacing: .1em; }
+
+/* ── scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+.mb28 { margin-bottom: 28px; }
+.mb36 { margin-bottom: 36px; }
+.mb40 { margin-bottom: 40px; }
+
+/* ── demo banner ── */
+.demo-banner {
+  background: rgba(245,158,11,.07); border: 1px solid rgba(245,158,11,.2);
+  border-radius: 4px; padding: 10px 18px; margin-bottom: 28px;
+  font-size: .75rem; color: var(--yellow); display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono);
+}
+
+/* ── compare chart container ── */
+.compare-chart {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+  padding: 26px; margin-bottom: 36px;
+}
+
+/* ── pipeline card grid ── */
+.pipeline-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px,1fr)); gap: 18px; margin-bottom: 40px; }
+.pipeline-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 22px; cursor: pointer;
+  transition: all .15s; position: relative; overflow: hidden;
+}
+.pipeline-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--card-color, var(--accent));
+}
+.pipeline-card:hover { border-color: var(--card-color, var(--accent)); transform: translateY(-2px); }
+.pipeline-card.best-card { border-color: rgba(34,197,94,.3); }
+.pipeline-card.best-card::before { background: var(--green); }
+.pc-rank { font-family: var(--mono); font-size: .58rem; color: var(--muted); margin-bottom: 6px; }
+.pc-name { font-family: var(--mono); font-size: .95rem; font-weight: 700; margin-bottom: 4px; }
+.pc-clf { font-size: .75rem; color: var(--muted); margin-bottom: 14px; }
+.pc-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.pc-metrics { display: flex; gap: 16px; }
+.pc-metric { }
+.pc-metric-label { font-family: var(--mono); font-size: .54rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+.pc-metric-val { font-family: var(--mono); font-size: 1.05rem; font-weight: 700; margin-top: 3px; }
+.pc-view { position: absolute; bottom: 18px; right: 18px; }
+.best-ribbon {
+  position: absolute; top: 12px; right: -24px;
+  background: var(--green); color: #000;
+  font-family: var(--mono); font-size: .52rem; letter-spacing: .1em;
+  padding: 3px 28px; transform: rotate(45deg); transform-origin: center;
+}
+
+/* detail page accent line */
+.accent-line { height: 2px; background: var(--line-color, var(--accent)); border-radius: 2px; margin-bottom: 32px; }
+
+/* ── empty state ── */
+.empty { text-align: center; padding: 60px; color: var(--muted); font-family: var(--mono); font-size: .78rem; line-height: 1.8; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useRef, useCallback } = React;
+
+/* ─────────────────────────────────────────────
+   PIPELINE META — descriptions, purposes, how
+───────────────────────────────────────────── */
+const PIPELINE_META = {
+  "Pipeline 1": {
+    color: '#00e5ff',
+    feature_selection: {
+      name: "SelectKBest (ANOVA F-test)",
+      icon: "📊",
+      purpose: "Select the top-K sensors that are most statistically different between fault classes.",
+      body: "SelectKBest ranks all sensor features using the ANOVA F-statistic — a measure of how much a sensor's value changes between the Healthy, Degrading, and Critical classes. Features with low F-scores are dropped because they carry no class-discriminating information.",
+      how: "Fits ANOVA on training data → ranks features → keeps top 15 → drops the rest. Applied before SMOTE to avoid inflating irrelevant features."
+    },
+    imbalance: {
+      name: "SMOTE",
+      icon: "⚖️",
+      purpose: "Synthesise new minority-class samples so the classifier doesn't ignore rare fault states.",
+      body: "SMOTE (Synthetic Minority Over-sampling Technique) creates artificial 'Degrading' and 'Critical' class samples by interpolating between real examples in feature space. This prevents the model from just predicting 'Healthy' all the time (the dominant class).",
+      how: "For each minority sample, find its K nearest neighbours → pick one randomly → create a synthetic point on the line segment between them."
+    },
+    classifier: {
+      name: "SVM (RBF Kernel)",
+      icon: "🔷",
+      purpose: "Find the maximum-margin hyperplane in a high-dimensional feature space to separate fault classes.",
+      body: "Support Vector Machine with an RBF (Radial Basis Function) kernel maps the 15 selected sensor features into an infinite-dimensional space where non-linear fault boundaries become linear. It then finds the widest possible gap between classes, which generalises well on unseen engine cycles.",
+      how: "Kernel trick: K(x,y)=exp(-γ||x-y||²). Trained with C=10 (regularisation), gamma='scale'. Probability estimates enabled for confidence scores."
+    }
+  },
+  "Pipeline 2": {
+    color: '#ff6b35',
+    feature_selection: {
+      name: "RFE (Random Forest base)",
+      icon: "🌲",
+      purpose: "Iteratively discard least-useful sensors by measuring their contribution to a Random Forest.",
+      body: "Recursive Feature Elimination trains a Random Forest, records each feature's importance, removes the weakest feature(s), and repeats. This captures non-linear interactions between sensors that ANOVA F-test misses (e.g. sensor_12 may only be important when combined with sensor_4).",
+      how: "Train RF → rank feature importances → remove bottom feature → retrain → repeat until 15 features remain."
+    },
+    imbalance: {
+      name: "Class Weights",
+      icon: "🏋️",
+      purpose: "Penalise the classifier more heavily for misclassifying rare fault classes during training.",
+      body: "Instead of creating new data, Class Weights rebalances the loss function. The minority classes (Degrading, Critical) are assigned higher weights, so a misclassification of 'Critical→Healthy' incurs a much larger penalty than a minor class error. No synthetic data is created.",
+      how: "weight[class] = n_total / (n_classes × n_class_samples). Passed directly as class_weight='balanced' to XGBoost's scale_pos_weight."
+    },
+    classifier: {
+      name: "XGBoost",
+      icon: "⚡",
+      purpose: "Gradient-boosted decision trees — the most effective classical method for tabular fault data.",
+      body: "XGBoost builds an ensemble of shallow decision trees sequentially, where each new tree corrects the errors of all previous ones. It applies L1/L2 regularisation (unlike vanilla gradient boosting) and handles missing sensor readings natively. Consistently wins on aerospace tabular datasets.",
+      how: "300 estimators, max_depth=6, learning_rate=0.05. Each tree fitted on pseudo-residuals of previous ensemble. Feature subsampling (colsample=0.8) for variance reduction."
+    }
+  },
+  "Pipeline 3": {
+    color: '#22c55e',
+    feature_selection: {
+      name: "SelectKBest (ANOVA F-test)",
+      icon: "📊",
+      purpose: "Select the top-K sensors most statistically discriminative across fault classes.",
+      body: "Same statistical filter as Pipeline 1, but here combined with ADASYN imbalance handling and a Random Forest classifier. Testing SelectKBest with different downstream techniques reveals whether the feature set is the bottleneck or the imbalance strategy.",
+      how: "Fits ANOVA on training data → ranks all sensor features → retains top 15 → feeds into ADASYN oversampling."
+    },
+    imbalance: {
+      name: "ADASYN",
+      icon: "🎯",
+      purpose: "Adaptively generate more synthetic samples near decision boundaries where classification is hardest.",
+      body: "ADASYN (Adaptive Synthetic Sampling) is smarter than SMOTE. It generates proportionally more synthetic samples in regions where the minority class is most frequently misclassified (high-density majority regions). This focuses the model's attention on the hardest-to-classify boundary cases — exactly the transition from Degrading→Critical in aircraft engines.",
+      how: "Compute local density ratio for each minority sample → generate more synthetic samples in regions with high ratio → result: denser coverage near decision boundary."
+    },
+    classifier: {
+      name: "Random Forest",
+      icon: "🌳",
+      purpose: "Bootstrap-aggregated decision trees — robust, interpretable, and excellent at handling sensor noise.",
+      body: "Random Forest trains 200 decision trees on random subsets of the data and features, then takes a majority vote. Each tree sees a different 'view' of the engine sensor data, making the ensemble robust to individual noisy sensors. Feature importances can be extracted to explain which sensors matter most.",
+      how: "200 trees, max_depth=10, max_features='sqrt'. Out-of-bag scoring for internal validation. Majority vote across all trees for prediction."
+    }
+  },
+  "Pipeline 4": {
+    color: '#f59e0b',
+    feature_selection: {
+      name: "RFE (Extra Trees base)",
+      icon: "🌲",
+      purpose: "Use fully-randomised tree splits to select features, reducing overfitting in the selection step itself.",
+      body: "This variant of RFE uses Extra Trees (Extremely Randomised Trees) as the base estimator instead of a standard Random Forest. Extra Trees uses random thresholds for splitting rather than the optimal split — this makes feature importance estimates more stable and less prone to over-selecting correlated sensors.",
+      how: "Train ExtraTrees → rank importances → remove bottom feature → retrain → 15 features remain. More robust selection than standard RF-RFE."
+    },
+    imbalance: {
+      name: "SMOTE",
+      icon: "⚖️",
+      purpose: "Balance class distribution by generating synthetic interpolated minority samples.",
+      body: "SMOTE creates balanced training data so the Extra Trees classifier can learn accurate boundaries for all three fault classes. Particularly important for the 'Critical' class which has the fewest real samples in the CMAPSS dataset.",
+      how: "K=5 nearest neighbours. Synthetic samples placed at random positions along line segments between real minority samples in 15-dimensional feature space."
+    },
+    classifier: {
+      name: "Extra Trees",
+      icon: "🎲",
+      purpose: "Faster, lower-variance alternative to Random Forest using fully random split thresholds.",
+      body: "Extra Trees (Extremely Randomised Trees) builds trees with completely random split thresholds — not the optimal split. This sounds counterintuitive, but the averaging across 200 trees reduces variance dramatically, often matching or beating Random Forest at a fraction of the training time. Particularly effective on the high-dimensional CMAPSS sensor space.",
+      how: "200 trees, random thresholds at each node, max_features='sqrt'. No bootstrap (uses full dataset per tree). Fastest ensemble method tested."
+    }
+  },
+  "Pipeline 5": {
+    color: '#a78bfa',
+    feature_selection: {
+      name: "SelectKBest (ANOVA F-test)",
+      icon: "📊",
+      purpose: "Statistical feature ranking to retain only the most class-discriminative sensors.",
+      body: "Third appearance of SelectKBest, this time paired with ADASYN and a tuned XGBoost. This pipeline tests whether the combination of adaptive oversampling with the strongest gradient boosting configuration can overcome the simpler feature selection method.",
+      how: "ANOVA F-test on 15 features → ADASYN balancing → XGBoost with deeper trees and higher n_estimators than Pipeline 2."
+    },
+    imbalance: {
+      name: "ADASYN",
+      icon: "🎯",
+      purpose: "Adaptive synthetic oversampling, generating more samples near difficult class boundaries.",
+      body: "ADASYN's adaptive nature pairs especially well with XGBoost. By focusing synthetic data near the hard boundary regions (Healthy↔Degrading, Degrading↔Critical), it gives XGBoost's gradient descent the most valuable training signal for correct fault transition detection.",
+      how: "Beta=1.0 (full balancing). Density-weighted synthetic generation. XGBoost then learns from this boundary-enriched training set."
+    },
+    classifier: {
+      name: "XGBoost (Tuned)",
+      icon: "⚡",
+      purpose: "Deeper, regularised gradient boosting with early stopping for the best generalisation.",
+      body: "This tuned XGBoost configuration uses more estimators (400), deeper trees (max_depth=8), and stricter regularisation (alpha=0.1, lambda=1.5) compared to Pipeline 2. The result is a model that captures more complex engine degradation patterns without overfitting the SMOTE-augmented training data.",
+      how: "400 estimators, max_depth=8, lr=0.05, subsample=0.8, colsample=0.8, alpha=0.1. eval_metric='mlogloss' with early stopping on validation set."
+    }
+  },
+  "Pipeline 6": {
+    color: '#f472b6',
+    feature_selection: {
+      name: "RFE (Random Forest base)",
+      icon: "🌲",
+      purpose: "Recursive feature elimination using tree-based importances to capture sensor interactions.",
+      body: "RFE with a Random Forest base, same as Pipeline 2's selection step — but this time paired with a class-weighted SVM instead of XGBoost. This directly isolates the effect of the classifier choice by holding feature selection and imbalance method constant between P2 and P6.",
+      how: "Same RFE process as P2: iteratively remove least important features until 15 remain. Creates a non-linear feature importance ranking."
+    },
+    imbalance: {
+      name: "Class Weights",
+      icon: "🏋️",
+      purpose: "Re-weight training loss to compensate for class imbalance without creating synthetic data.",
+      body: "Using class weights rather than oversampling avoids introducing synthetic noise into the SVM's training space. The SVM's support vector selection is sensitive to outliers, so class weights is often preferable to SMOTE for SVM-based classifiers.",
+      how: "Computed as n_total / (3 × n_class). class_weight='balanced' in sklearn SVC automatically applies these weights to the SVM's C penalty."
+    },
+    classifier: {
+      name: "SVM (RBF, Balanced)",
+      icon: "🔷",
+      purpose: "Class-weight-balanced SVM as a direct comparison to Pipeline 1's SMOTE-balanced SVM.",
+      body: "Almost identical to Pipeline 1's SVM but: (a) uses RFE features instead of SelectKBest features, and (b) uses class weights instead of SMOTE. This design lets you see how much the choice of feature selector and imbalance method matters independently from the classifier.",
+      how: "RBF kernel, C=10, gamma='scale', class_weight='balanced'. Balancing baked into the SVM's margin optimisation rather than the training data."
+    }
+  },
+  "Pipeline 7": {
+    color: '#a78bfa',
+    isQuantum: true,
+    feature_selection: {
+      name: "SelectKBest (ANOVA F-test)",
+      icon: "📊",
+      purpose: "Select exactly 4 sensors — one per qubit — for quantum embedding.",
+      body: "The quantum circuit requires a fixed number of qubits equal to the number of features. Selecting exactly 4 sensors using ANOVA keeps the statevector simulation computationally feasible (2⁴ = 16 dimensional Hilbert space). More features would require exponentially more memory.",
+      how: "k=4 features selected. Each becomes one qubit in the ZZFeatureMap circuit. Selected features are the 4 most F-statistically discriminative sensors."
+    },
+    imbalance: {
+      name: "SMOTE",
+      icon: "⚖️",
+      purpose: "Balance the subset before quantum kernel computation.",
+      body: "SMOTE balances the training subset (500 samples) before it is fed to the quantum kernel. The Quantum SVM's kernel matrix computation is O(n²), so a small balanced subset is essential for feasibility. Without balancing, the quantum classifier would over-index on the Healthy class.",
+      how: "Applied to 500-sample stratified subset only. Creates balanced 3-class distribution before kernel matrix computation."
+    },
+    classifier: {
+      name: "Quantum SVM (ZZFeatureMap)",
+      icon: "⚛️",
+      purpose: "Map sensor data into quantum Hilbert space where entanglement captures non-linear correlations that classical kernels miss.",
+      body: "This is the core novelty of your research title. The ZZFeatureMap quantum circuit encodes each sensor reading as a rotation angle on a qubit, then applies entangling ZZ-gates between qubit pairs. This creates a quantum kernel K(xᵢ,xⱼ) = |⟨φ(xᵢ)|φ(xⱼ)⟩|² that captures correlations between sensors in exponentially high-dimensional quantum feature space.\n\nOn classical hardware (which we use here), this is simulated via statevector computation. On real quantum hardware (IBM Q, Quantinuum), the same circuit gives true quantum advantage. The 'quantum advantage delta' measures how much the quantum kernel beats the classical RBF kernel on identical data.",
+      how: "ZZFeatureMap: H gate → Rz(2xᵢ) → CNOT → Rz(2(π-xᵢ)(π-xⱼ)) → repeated 2×. FidelityQuantumKernel computes the kernel matrix via state overlap. QSVC (quantum SVM) trained on 500 samples, tested on 150."
+    }
+  }
+};
+
+/* ─────────────────────────────────────────────
+   INJECTED RESULTS — written by main_compare.py
+───────────────────────────────────────────── */
+const RESULTS = __RESULTS_JSON__;
+
+/* ─────────────────────────────────────────────
+   HELPERS
+───────────────────────────────────────────── */
+const COLORS = ['#00e5ff','#ff6b35','#22c55e','#f59e0b','#a78bfa','#f472b6','#38bdf8'];
+function cmColor(val, max) {
+  if (max === 0 || val === 0) return 'rgba(255,255,255,0.03)';
+  const t = val / max;
+  return `rgba(0,${Math.round(229*t)},${Math.round(255*t)},${0.1 + t*0.6})`;
+}
+
+/* ─────────────────────────────────────────────
+   SUB-COMPONENTS
+───────────────────────────────────────────── */
+function ConfusionMatrix({ cm }) {
+  if (!cm) return <div className="empty">No confusion matrix data</div>;
+  const labels = ['Healthy','Degrading','Critical'];
+  const maxVal = Math.max(...cm.flat());
+  const total = cm.flat().reduce((a,b)=>a+b,0);
+  return (
+    <div className="cm-wrap">
+      <div className="cm-col-labels">
+        {labels.map(l => <div key={l} className="cm-col-label">{l}</div>)}
+      </div>
+      {cm.map((row, i) => (
+        <div key={i} className="cm-row">
+          <div className="cm-row-label">{labels[i]}</div>
+          {row.map((val, j) => (
+            <div key={j} className="cm-cell" style={{background:cmColor(val,maxVal), border: i===j?'1px solid rgba(255,255,255,.2)':'none'}}>
+              <div className="cm-cell-val">{val.toLocaleString()}</div>
+              <div className="cm-cell-pct">{total>0?((val/total)*100).toFixed(1)+'%':''}</div>
+            </div>
+          ))}
+        </div>
+      ))}
+      <div className="cm-axis">← Predicted →</div>
+    </div>
+  );
+}
+
+function MetricsPanel({ report, accent }) {
+  if (!report) return null;
+  const classes = [
+    { key:'0', label:'Healthy',   color:'#22c55e' },
+    { key:'1', label:'Degrading', color:'#f59e0b' },
+    { key:'2', label:'Critical',  color:'#ef4444' },
+  ];
+  const metrics = ['precision','recall','f1-score'];
+  return (
+    <div>
+      {classes.map(cls => {
+        const d = report[cls.key]; if (!d) return null;
+        return (
+          <div key={cls.key} className="class-section">
+            <span className="class-label" style={{color:cls.color,background:`${cls.color}15`,border:`1px solid ${cls.color}30`}}>
+              Class {cls.key} — {cls.label}
+            </span>
+            {metrics.map(m => (
+              <div key={m} className="metric-row">
+                <div className="metric-header">
+                  <span className="metric-name" style={{textTransform:'capitalize'}}>{m}</span>
+                  <span className="metric-val" style={{color:cls.color}}>{(d[m]*100).toFixed(1)}%</span>
+                </div>
+                <div className="metric-bar-bg">
+                  <div className="metric-bar-fill" style={{width:`${d[m]*100}%`,background:cls.color}}/>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function AccuracyChart({ leaderboard, activePipeline, onSelect }) {
+  const accs = leaderboard.map(r => r.accuracy);
+  const minA = Math.min(...accs) * 0.97;
+  const maxA = Math.max(...accs);
+  return (
+    <div>
+      <div className="acc-chart">
+        {leaderboard.map((r, i) => {
+          const h = maxA > minA ? ((r.accuracy - minA)/(maxA - minA)) * 110 + 20 : 80;
+          const color = PIPELINE_META[r.pipeline]?.color || COLORS[i % COLORS.length];
+          const isActive = activePipeline === r.pipeline;
+          return (
+            <div key={i} className="acc-bar-wrap" onClick={()=>onSelect(r.pipeline)}>
+              <div className="acc-bar-val" style={{color:color,opacity:isActive?1:.6}}>{(r.accuracy*100).toFixed(1)}%</div>
+              <div className="acc-bar" style={{
+                height: h,
+                background: color,
+                opacity: isActive ? 1 : 0.35,
+                boxShadow: isActive ? `0 0 16px ${color}66` : 'none',
+                outline: isActive ? `2px solid ${color}` : 'none',
+                outlineOffset: 2
+              }}/>
+              <div className="acc-bar-lbl">{r.pipeline.replace('Pipeline ','P')}</div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="chart-baseline"/>
+    </div>
+  );
+}
+
+function DescCard({ icon, title, purpose, body, how, accentColor }) {
+  return (
+    <div className="desc-card">
+      <div className="desc-card-header">
+        <span className="desc-card-icon">{icon}</span>
+        <span className="desc-card-title" style={{color: accentColor || 'var(--accent)'}}>{title}</span>
+      </div>
+      <div className="desc-card-purpose">{purpose}</div>
+      <div className="desc-card-body">{body}</div>
+      {how && (
+        <div className="desc-card-how">
+          <div className="desc-card-how-title">How it works</div>
+          <div className="desc-card-body" style={{fontSize:'.74rem'}}>{how}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   PIPELINE DETAIL PAGE
+───────────────────────────────────────────── */
+function PipelineDetailPage({ pipelineName, data, onBack }) {
+  const meta = PIPELINE_META[pipelineName] || {};
+  const lb = data?.leaderboard?.find(r => r.pipeline === pipelineName);
+  const detail = data?.pipelines?.find(p => p.pipeline === pipelineName);
+  const isQuantum = meta.isQuantum;
+  const color = meta.color || '#00e5ff';
+  const quantumData = pipelineName === 'Pipeline 7' ? data?.quantum_pipeline : null;
+
+  const acc = lb?.accuracy || quantumData?.accuracy || 0;
+  const f1 = lb?.f1_weighted || 0;
+
+  return (
+    <div className="main">
+      {/* back button + header */}
+      <div className="pipeline-detail-header">
+        <div>
+          <div style={{marginBottom:10}}>
+            <button className="back-btn" onClick={onBack}>← Home</button>
+          </div>
+          <div style={{display:'flex', alignItems:'center', gap:12}}>
+            {isQuantum && <span style={{fontSize:'1.4rem'}}>⚛️</span>}
+            <div>
+              <div className="pipeline-detail-name" style={{color}}>{pipelineName}</div>
+              <div className="pipeline-detail-sub">{lb?.classifier || meta.classifier?.name || 'Quantum SVM'}</div>
+            </div>
+          </div>
+          <div className="pipeline-detail-tags">
+            {meta.feature_selection && <span className="tag tag-fs">{meta.feature_selection.name}</span>}
+            {meta.imbalance && <span className="tag tag-im">{meta.imbalance.name}</span>}
+            {meta.classifier && <span className={`tag ${isQuantum?'tag-q':'tag-clf'}`}>{meta.classifier.name}</span>}
+          </div>
+        </div>
+        {lb?.is_best && (
+          <div style={{background:'rgba(34,197,94,.1)',border:'1px solid rgba(34,197,94,.25)',borderRadius:6,padding:'14px 22px',textAlign:'center'}}>
+            <div style={{fontSize:'1.6rem',marginBottom:4}}>🏆</div>
+            <div style={{fontFamily:'var(--mono)',fontSize:'.6rem',color:'var(--green)',letterSpacing:'.14em'}}>BEST PIPELINE</div>
+          </div>
+        )}
+      </div>
+
+      <div className="accent-line" style={{'--line-color': color}}/>
+
+      {/* results KPIs */}
+      <p className="section-title">Results</p>
+      <div className="result-kpi-row mb36">
+        <div className="result-kpi" style={{'--kpi-color': color}}>
+          <div className="result-kpi-label">Accuracy</div>
+          <div className="result-kpi-val" style={{color}}>{(acc*100).toFixed(2)}%</div>
+        </div>
+        <div className="result-kpi" style={{'--kpi-color':'var(--accent2)'}}>
+          <div className="result-kpi-label">F1-Score (Weighted)</div>
+          <div className="result-kpi-val" style={{color:'var(--accent2)'}}>{f1?(f1*100).toFixed(2)+'%':'—'}</div>
+        </div>
+        {isQuantum && quantumData && (
+          <>
+          <div className="result-kpi" style={{'--kpi-color':'var(--quantum)'}}>
+            <div className="result-kpi-label">Classical SVM (same subset)</div>
+            <div className="result-kpi-val" style={{color:'var(--text2)'}}>{(quantumData.classical_accuracy_same_subset*100).toFixed(2)}%</div>
+          </div>
+          <div className="result-kpi" style={{'--kpi-color': quantumData.quantum_advantage_delta>=0?'var(--green)':'var(--red)'}}>
+            <div className="result-kpi-label">Quantum Advantage Δ</div>
+            <div className="result-kpi-val" style={{color: quantumData.quantum_advantage_delta>=0?'var(--green)':'var(--red)'}}>
+              {quantumData.quantum_advantage_delta>=0?'+':''}{(quantumData.quantum_advantage_delta*100).toFixed(2)}%
+            </div>
+          </div>
+          </>
+        )}
+        <div className="result-kpi" style={{'--kpi-color':'var(--muted)'}}>
+          <div className="result-kpi-label">Runtime</div>
+          <div className="result-kpi-val" style={{color:'var(--text2)',fontSize:'1.2rem'}}>{lb?.runtime_seconds || '—'}s</div>
+        </div>
+      </div>
+
+      {/* confusion matrix + per-class metrics */}
+      <p className="section-title">Confusion Matrix & Per-Class Metrics</p>
+      <div className="two-col mb36">
+        <div className="panel">
+          <div className="panel-title">Confusion Matrix {isQuantum && <span style={{color:'var(--quantum)'}}>(subset only)</span>}</div>
+          {detail?.confusion_matrix
+            ? <ConfusionMatrix cm={detail.confusion_matrix}/>
+            : <div className="empty">Run main_compare.py to generate data</div>}
+        </div>
+        <div className="panel">
+          <div className="panel-title">Per-Class Precision / Recall / F1</div>
+          {detail?.report
+            ? <MetricsPanel report={detail.report} accent={color}/>
+            : <div className="empty">Load all_results.json to see per-class metrics</div>}
+        </div>
+      </div>
+
+      {/* technique descriptions */}
+      <p className="section-title">Pipeline Techniques — What, Why & How</p>
+      <div className="desc-grid">
+        {meta.feature_selection && (
+          <DescCard
+            icon={meta.feature_selection.icon}
+            title={`Feature Selection: ${meta.feature_selection.name}`}
+            purpose={meta.feature_selection.purpose}
+            body={meta.feature_selection.body}
+            how={meta.feature_selection.how}
+            accentColor="var(--accent)"
+          />
+        )}
+        {meta.imbalance && (
+          <DescCard
+            icon={meta.imbalance.icon}
+            title={`Class Imbalance: ${meta.imbalance.name}`}
+            purpose={meta.imbalance.purpose}
+            body={meta.imbalance.body}
+            how={meta.imbalance.how}
+            accentColor="var(--accent2)"
+          />
+        )}
+        {meta.classifier && (
+          <DescCard
+            icon={meta.classifier.icon}
+            title={`Classifier: ${meta.classifier.name}`}
+            purpose={meta.classifier.purpose}
+            body={meta.classifier.body}
+            how={meta.classifier.how}
+            accentColor={isQuantum ? 'var(--quantum)' : 'var(--accent3)'}
+          />
+        )}
+      </div>
+
+      {/* selected features */}
+      {detail?.selected_features && (
+        <>
+        <p className="section-title">Selected Features ({detail.selected_features.length})</p>
+        <div className="panel mb36">
+          <div className="panel-title">Sensors retained after feature selection — top 5 highlighted</div>
+          <div className="feature-list">
+            {detail.selected_features.map((f,i) => (
+              <span key={i} className={`feature-chip ${i<5?'top':''}`}>{f}</span>
+            ))}
+          </div>
+        </div>
+        </>
+      )}
+
+      {/* quantum note */}
+      {isQuantum && quantumData?.note && (
+        <div className="quantum-panel mb36">
+          <div className="quantum-header">
+            <span className="quantum-icon">⚛️</span>
+            <div className="quantum-title-text">
+              <h3>Quantum Kernel Notes</h3>
+              <p>ZZFeatureMap · {quantumData.n_qubits} qubits · Statevector simulator</p>
+            </div>
+          </div>
+          <div className="q-note">{quantumData.note}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   HOME PAGE
+───────────────────────────────────────────── */
+function HomePage({ data, onViewPipeline }) {
+  const [activePipeline, setActivePipeline] = useState(null);
+  const lb = data?.leaderboard || [];
+  const quantum = data?.quantum_pipeline;
+  const best = lb[0];
+
+  return (
+    <div className="main">
+      {/* stat cards */}
+      <p className="section-title">Summary</p>
+      <div className="stats-grid">
+        <div className="stat-card" style={{'--accent-color':'var(--green)'}}>
+          <div className="stat-label">Best Accuracy</div>
+          <div className="stat-value" style={{color:'var(--green)'}}>{best ? (best.accuracy*100).toFixed(2)+'%' : '—'}</div>
+          <div className="stat-sub">{best?.pipeline} · {best?.classifier}</div>
+        </div>
+        <div className="stat-card" style={{'--accent-color':'var(--accent)'}}>
+          <div className="stat-label">Best F1-Score</div>
+          <div className="stat-value" style={{color:'var(--accent)'}}>{best ? (best.f1_weighted*100).toFixed(2)+'%' : '—'}</div>
+          <div className="stat-sub">Weighted across 3 fault classes</div>
+        </div>
+        <div className="stat-card" style={{'--accent-color':'var(--accent2)'}}>
+          <div className="stat-label">Pipelines Run</div>
+          <div className="stat-value" style={{color:'var(--accent2)'}}>{lb.length + (quantum?1:0)}</div>
+          <div className="stat-sub">{lb.length} classical · {quantum?1:0} quantum</div>
+        </div>
+        <div className="stat-card" style={{'--accent-color':'var(--quantum)'}}>
+          <div className="stat-label">Quantum Δ Gain</div>
+          <div className="stat-value" style={{color:'var(--quantum)'}}>
+            {quantum ? `${quantum.quantum_advantage_delta>=0?'+':''}${(quantum.quantum_advantage_delta*100).toFixed(2)}%` : '—'}
+          </div>
+          <div className="stat-sub">QSVC vs classical SVM (same subset)</div>
+        </div>
+      </div>
+
+      {/* recommendation */}
+      {best && (
+        <div className="recommendation mb40">
+          <div className="rec-crown">🏆</div>
+          <div className="rec-title">Recommended Model</div>
+          <div className="rec-name">{best.pipeline} — {best.classifier}</div>
+          <div className="rec-desc">
+            Achieved the highest weighted F1-score of <strong style={{color:'var(--green)'}}>{(best.f1_weighted*100).toFixed(2)}%</strong> and
+            accuracy of <strong style={{color:'var(--green)'}}>{(best.accuracy*100).toFixed(2)}%</strong> using{' '}
+            <strong>{best.feature_selection}</strong> for feature selection and{' '}
+            <strong>{best.imbalance_method}</strong> to handle class imbalance.
+            This combination delivers the best trade-off between precision and recall across all three aerospace fault classes.
+          </div>
+          <div className="rec-tags">
+            <span className="tag tag-fs">{best.feature_selection.split('(')[0].trim()}</span>
+            <span className="tag tag-im">{best.imbalance_method}</span>
+            <span className="tag tag-clf">{best.classifier}</span>
+          </div>
+        </div>
+      )}
+
+      {/* accuracy chart */}
+      <p className="section-title">Accuracy Comparison</p>
+      <div className="compare-chart">
+        <AccuracyChart leaderboard={lb} activePipeline={activePipeline} onSelect={setActivePipeline}/>
+      </div>
+
+      {/* pipeline cards */}
+      <p className="section-title">All Pipelines — click to explore</p>
+      <div className="pipeline-card-grid">
+        {lb.map((r, i) => {
+          const meta = PIPELINE_META[r.pipeline] || {};
+          const color = meta.color || COLORS[i % COLORS.length];
+          return (
+            <div key={i} className={`pipeline-card ${r.is_best?'best-card':''}`}
+                 style={{'--card-color': color}}
+                 onClick={()=>onViewPipeline(r.pipeline)}>
+              {r.is_best && <div className="best-ribbon">BEST</div>}
+              <div className="pc-rank">#{r.rank} in leaderboard</div>
+              <div className="pc-name" style={{color}}>{r.pipeline}</div>
+              <div className="pc-clf">{r.classifier}</div>
+              <div className="pc-tags">
+                <span className="tag tag-fs" style={{fontSize:'.55rem'}}>{r.feature_selection.split('(')[0].trim()}</span>
+                <span className="tag tag-im" style={{fontSize:'.55rem'}}>{r.imbalance_method}</span>
+              </div>
+              <div className="pc-metrics">
+                <div className="pc-metric">
+                  <div className="pc-metric-label">Accuracy</div>
+                  <div className="pc-metric-val" style={{color}}>{(r.accuracy*100).toFixed(2)}%</div>
+                </div>
+                <div className="pc-metric">
+                  <div className="pc-metric-label">F1 Weighted</div>
+                  <div className="pc-metric-val" style={{color:'var(--text2)'}}>{(r.f1_weighted*100).toFixed(2)}%</div>
+                </div>
+                <div className="pc-metric">
+                  <div className="pc-metric-label">Runtime</div>
+                  <div className="pc-metric-val" style={{color:'var(--muted)',fontSize:'.85rem'}}>{r.runtime_seconds}s</div>
+                </div>
+              </div>
+              <div className="pc-view">
+                <button className="view-btn" onClick={e=>{e.stopPropagation();onViewPipeline(r.pipeline);}}>View Details →</button>
+              </div>
+            </div>
+          );
+        })}
+        {/* quantum card */}
+        {quantum && (
+          <div className="pipeline-card" style={{'--card-color':'var(--quantum)'}} onClick={()=>onViewPipeline('Pipeline 7')}>
+            <div className="pc-rank">⚛️ Quantum Pipeline</div>
+            <div className="pc-name" style={{color:'var(--quantum)'}}>Pipeline 7</div>
+            <div className="pc-clf">Quantum SVM — ZZFeatureMap ({quantum.n_qubits} qubits)</div>
+            <div className="pc-tags">
+              <span className="tag tag-q" style={{fontSize:'.55rem'}}>SelectKBest</span>
+              <span className="tag tag-im" style={{fontSize:'.55rem'}}>SMOTE</span>
+              <span className="tag tag-q" style={{fontSize:'.55rem'}}>QSVC</span>
+            </div>
+            <div className="pc-metrics">
+              <div className="pc-metric">
+                <div className="pc-metric-label">Accuracy (subset)</div>
+                <div className="pc-metric-val" style={{color:'var(--quantum)'}}>{(quantum.accuracy*100).toFixed(2)}%</div>
+              </div>
+              <div className="pc-metric">
+                <div className="pc-metric-label">Quantum Δ</div>
+                <div className="pc-metric-val" style={{color: quantum.quantum_advantage_delta>=0?'var(--green)':'var(--red)'}}>
+                  {quantum.quantum_advantage_delta>=0?'+':''}{(quantum.quantum_advantage_delta*100).toFixed(2)}%
+                </div>
+              </div>
+            </div>
+            <div className="pc-view">
+              <button className="view-btn" style={{borderColor:'rgba(167,139,250,.3)',color:'var(--quantum)'}} onClick={e=>{e.stopPropagation();onViewPipeline('Pipeline 7');}}>View Details →</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* leaderboard table */}
+      <p className="section-title">Pipeline Leaderboard</p>
+      <div className="lb-table mb40">
+        <div className="lb-header">
+          <div>#</div><div>Pipeline</div><div>Feature Selection</div>
+          <div>Imbalance</div><div>Classifier</div>
+          <div>Accuracy</div><div>F1</div><div>Time</div><div></div>
+        </div>
+        {lb.map((r, i) => {
+          const meta = PIPELINE_META[r.pipeline] || {};
+          const color = meta.color || COLORS[i % COLORS.length];
+          return (
+            <div key={i} className={`lb-row ${r.is_best?'best':''}`} onClick={()=>onViewPipeline(r.pipeline)}>
+              <div className="rank">{r.rank}</div>
+              <div className="pipeline-name" style={{color}}>{r.pipeline}</div>
+              <div><span className="tag tag-fs" style={{fontSize:'.55rem'}}>{r.feature_selection.split('(')[0].trim()}</span></div>
+              <div><span className="tag tag-im" style={{fontSize:'.55rem'}}>{r.imbalance_method}</span></div>
+              <div><span className="tag tag-clf" style={{fontSize:'.55rem'}}>{r.classifier}</span></div>
+              <div className="bar-cell">
+                <div className="bar-bg">
+                  <div className="bar-fill" style={{width:`${Math.max(0,((r.accuracy-0.92)/(1-0.92))*100)}%`,background:color}}/>
+                </div>
+                <span className="acc-val">{(r.accuracy*100).toFixed(2)}%</span>
+              </div>
+              <div><span className="f1-val">{(r.f1_weighted*100).toFixed(2)}%</span></div>
+              <div className="runtime">{r.runtime_seconds}s</div>
+              <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                {r.is_best && <span className="best-badge">BEST</span>}
+                <button className="view-btn" onClick={e=>{e.stopPropagation();onViewPipeline(r.pipeline);}}>→</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* quantum summary panel */}
+      {quantum && (
+        <div className="quantum-panel mb40" onClick={()=>onViewPipeline('Pipeline 7')} style={{cursor:'pointer'}}>
+          <div className="quantum-header">
+            <span className="quantum-icon">⚛️</span>
+            <div className="quantum-title-text">
+              <h3>Pipeline 7 — Quantum SVM (QSVC · ZZFeatureMap)</h3>
+              <p>Quantum-Inspired AI for Multi-Modal Fault Diagnosis — click for full analysis</p>
+            </div>
+          </div>
+          <div className="q-grid">
+            <div>
+              <div className="q-stat-label">QSVC Accuracy (subset)</div>
+              <div className="q-stat-value">{(quantum.accuracy*100).toFixed(2)}%</div>
+            </div>
+            <div>
+              <div className="q-stat-label">Classical SVM (same subset)</div>
+              <div className="q-stat-value" style={{color:'var(--text2)',fontSize:'1.2rem'}}>{(quantum.classical_accuracy_same_subset*100).toFixed(2)}%</div>
+            </div>
+            <div>
+              <div className="q-stat-label">Quantum Advantage Δ</div>
+              <div className="q-stat-value" style={{color: quantum.quantum_advantage_delta>=0?'var(--green)':'var(--red)'}}>
+                {quantum.quantum_advantage_delta>=0?'+':''}{(quantum.quantum_advantage_delta*100).toFixed(2)}%
+              </div>
+            </div>
+          </div>
+          <div className="q-note">
+            ⚠ {quantum.note}
+            {quantum.n_qubits && <span> Feature map uses <strong style={{color:'var(--quantum)'}}>{quantum.n_qubits} qubits</strong> (ZZFeatureMap, 2 reps).</span>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   UPLOAD PAGE
+───────────────────────────────────────────── */
+
+
+/* ─────────────────────────────────────────────
+   ROOT APP — boots directly from injected data
+───────────────────────────────────────────── */
+function App() {
+  const [currentPage, setCurrentPage] = useState('home');
+  const data = RESULTS;
+  const isPipelinePage = currentPage !== 'home';
+
+  return (
+    <div>
+      <header className="header">
+        <div className="logo">
+          <div>
+            <span className="logo-text" style={{cursor:'pointer'}} onClick={()=>setCurrentPage('home')}>
+              FAULT<span>SIGHT</span>
+            </span>
+            <span className="logo-sub">Quantum-Inspired Fault Diagnosis · CMAPSS</span>
+          </div>
+        </div>
+        <div className="header-right">
+          <div className="badge">⚛ QSVC ENABLED</div>
+          <button className="btn btn-ghost btn-sm" onClick={()=>setCurrentPage('home')}>Home</button>
+        </div>
+      </header>
+
+      {/* Nav tabs */}
+      {currentPage === 'home' && (
+        <div className="nav-tabs">
+          <button className="nav-tab active">Overview</button>
+          {(data.leaderboard||[]).map((r,i) => {
+            const meta = PIPELINE_META[r.pipeline] || {};
+            return (
+              <button key={i} className="nav-tab" style={{color: meta.color || 'var(--muted)'}}
+                      onClick={()=>setCurrentPage(r.pipeline)}>
+                {r.pipeline}{r.is_best?' ★':''}
+              </button>
+            );
+          })}
+          {data.quantum_pipeline && (
+            <button className="nav-tab quantum-tab" onClick={()=>setCurrentPage('Pipeline 7')}>
+              ⚛ P7 Quantum
+            </button>
+          )}
+        </div>
+      )}
+
+      {isPipelinePage ? (
+        <PipelineDetailPage
+          pipelineName={currentPage}
+          data={data}
+          onBack={()=>setCurrentPage('home')}
+        />
+      ) : (
+        <HomePage
+          data={data}
+          isDemo={false}
+          onViewPipeline={setCurrentPage}
+        />
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
